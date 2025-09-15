@@ -25,22 +25,27 @@ class GridSection extends ConsumerWidget {
       for (var rack in racking) '${rack.row}-${rack.col}': rack,
     };
 
+    const double cellWidth = 60.0; // Lebar tetap setiap sel
+    const double cellAspectRatio = 16 / 10; // Aspect ratio 16:10
+    const double cellHeight = cellWidth / cellAspectRatio;
+
     Widget buildRacking() {
-      return GridView.builder(
+      // Grid utama
+      final grid = GridView.builder(
           shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: maxCol,
               mainAxisSpacing: 4,
               crossAxisSpacing: 4,
-              childAspectRatio: 1.5),
+              childAspectRatio: 16 / 10),
           itemCount: maxRow * maxCol,
           itemBuilder: (context, index) {
-            final row = maxRow - (index ~/ maxCol); // <-- membalik row
+            final row = maxRow - (index ~/ maxCol); // Membalik row
             final col = index % maxCol + 1;
             final rack = rackMap['$row-$col'];
 
             Color color;
-            Border? border;
             if (rack == null || !rack.active) {
               color = Colors.grey[200]!;
             } else {
@@ -49,11 +54,60 @@ class GridSection extends ConsumerWidget {
 
             return Container(
               decoration: BoxDecoration(
-                  color: color,
-                  borderRadius: BorderRadius.circular(3),
-                  border: border),
+                color: color,
+                borderRadius: BorderRadius.circular(3),
+              ),
             );
           });
+
+      // Bungkus grid + label row
+      final gridWithRowLabels = Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Label row di kiri
+          Column(
+            children: List.generate(
+                maxRow,
+                (i) => Container(
+                      margin: const EdgeInsets.only(bottom: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 6),
+                      height: cellHeight, // Tinggi sama dengan tinggi sel grid
+                      width: 30,
+                      child: Center(child: Text('${maxRow - i}')),
+                    )),
+          ),
+          // Grid
+          SizedBox(
+              width: (cellWidth * maxCol) + (4 * (maxCol - 1)), // Lebar total
+              height: (cellHeight * maxRow) + (4 * (maxRow - 1)),
+              child: grid),
+        ],
+      );
+
+      // Tambahkan label kolom di bawah
+      final gridWithLabels = Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          gridWithRowLabels,
+          Row(children: [
+            const SizedBox(width: 30), // ruang kosong sejajar label row
+            ...List.generate(
+                maxCol,
+                (i) => Container(
+                    margin: const EdgeInsets.only(right: 4),
+                    width: cellWidth,
+                    child: Center(child: Text('${i + 1}')))),
+          ]),
+        ],
+      );
+
+      // Scroll 2 arah
+      return SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: SingleChildScrollView(
+            scrollDirection: Axis.vertical,
+            child: gridWithLabels,
+          ));
     }
 
     return Column(

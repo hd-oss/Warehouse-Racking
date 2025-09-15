@@ -46,33 +46,36 @@ class SidePanel extends ConsumerWidget {
       }
 
       return ListView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
         itemCount: history.length,
-        itemBuilder: (context, idx) {
-          final item = history[idx];
-          return ListTile(
-            dense: true,
-            title: Text.rich(TextSpan(children: [
+        itemBuilder: (context, idx) => ListTile(
+          dense: true,
+          title: Text.rich(
+            TextSpan(children: [
               TextSpan(
-                text: item.action,
+                text: history[idx].action,
                 style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: item.action == "IN" ? Colors.red : Colors.green),
+                  fontWeight: FontWeight.bold,
+                  color:
+                      history[idx].action == "IN" ? Colors.red : Colors.green,
+                ),
               ),
-              TextSpan(text: " (${item.row}, ${item.col})")
-            ])),
-            subtitle: Text(
-              item.timestamp.toString().substring(0, 19),
-              style: const TextStyle(
-                color: Colors.grey,
-              ),
-            ),
-          );
-        },
+              TextSpan(text: " (${history[idx].row}, ${history[idx].col})"),
+            ]),
+          ),
+          subtitle: Text(
+            history[idx].timestamp.toString().substring(0, 19),
+            style: const TextStyle(color: Colors.grey),
+          ),
+        ),
       );
     }
 
     return Column(
+      mainAxisSize: MainAxisSize.min, // 🔑 penting untuk mobile
       children: [
+        // Panel Input
         Container(
           padding: const EdgeInsets.all(16),
           margin: const EdgeInsets.only(bottom: 20),
@@ -83,6 +86,7 @@ class SidePanel extends ConsumerWidget {
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
               const Text(
                 "Panel Input",
@@ -90,17 +94,18 @@ class SidePanel extends ConsumerWidget {
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
-                    labelText: "Aksi",
-                    contentPadding: EdgeInsets.symmetric(horizontal: 8),
-                  ),
-                  value: input.action ?? "IN",
-                  items: const [
-                    DropdownMenuItem(value: "IN", child: Text("IN")),
-                    DropdownMenuItem(value: "OUT", child: Text("OUT")),
-                  ],
-                  onChanged: ref.read(inputProvider.notifier).updateAction),
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  labelText: "Aksi",
+                  contentPadding: EdgeInsets.symmetric(horizontal: 8),
+                ),
+                value: input.action ?? "IN",
+                items: const [
+                  DropdownMenuItem(value: "IN", child: Text("IN")),
+                  DropdownMenuItem(value: "OUT", child: Text("OUT")),
+                ],
+                onChanged: ref.read(inputProvider.notifier).updateAction,
+              ),
               const SizedBox(height: 12),
 
               // Input Row dan Col
@@ -108,88 +113,90 @@ class SidePanel extends ConsumerWidget {
                 children: [
                   Expanded(
                     child: TextField(
-                        decoration: const InputDecoration(
-                            hintText: "Col",
-                            border: OutlineInputBorder(),
-                            contentPadding: EdgeInsets.symmetric(horizontal: 8),
-                            counterText: ""),
-                        maxLength: 1, // hanya 1 karakter
-                        keyboardType: TextInputType.number,
-                        inputFormatters: [
-                          FilteringTextInputFormatter.digitsOnly
-                        ], // hanya angka
-                        onChanged: ref.read(inputProvider.notifier).updateCol),
+                      decoration: const InputDecoration(
+                        hintText: "Col",
+                        border: OutlineInputBorder(),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 8),
+                        counterText: "",
+                      ),
+                      maxLength: 2,
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      onChanged: ref.read(inputProvider.notifier).updateCol,
+                    ),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: TextField(
-                        decoration: const InputDecoration(
-                            hintText: "Row",
-                            border: OutlineInputBorder(),
-                            contentPadding: EdgeInsets.symmetric(horizontal: 8),
-                            counterText: ""),
-                        maxLength: 1,
-                        keyboardType: TextInputType.number,
-                        inputFormatters: [
-                          FilteringTextInputFormatter.digitsOnly
-                        ],
-                        onChanged: ref.read(inputProvider.notifier).updateRow),
+                      decoration: const InputDecoration(
+                        hintText: "Row",
+                        border: OutlineInputBorder(),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 8),
+                        counterText: "",
+                      ),
+                      maxLength: 2,
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      onChanged: ref.read(inputProvider.notifier).updateRow,
+                    ),
                   ),
                 ],
               ),
 
               const SizedBox(height: 16),
               ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                      minimumSize: const Size.fromHeight(40),
-                      backgroundColor: Colors.blue,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      )),
-                  onPressed: () async {
-                    final notifier = ref.read(rackingProvider.notifier);
-                    final historyNotifier = ref.read(historyProvider.notifier);
+                style: ElevatedButton.styleFrom(
+                  minimumSize: const Size.fromHeight(40),
+                  backgroundColor: Colors.blue,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                onPressed: () async {
+                  final notifier = ref.read(rackingProvider.notifier);
+                  final historyNotifier = ref.read(historyProvider.notifier);
 
-                    if (input.action != null &&
-                        input.row != null &&
-                        input.col != null) {
-                      try {
-                        // Tampilkan loading
-                        showLoadingDialog(context);
+                  if (input.action != null &&
+                      input.row != null &&
+                      input.col != null) {
+                    try {
+                      showLoadingDialog(context);
 
-                        await notifier.setOccupied(
-                          input.row!,
-                          input.col!,
-                          input.action == "IN",
-                        );
-
-                        await historyNotifier.loadHistory();
-
-                        if (!context.mounted) return;
-                        Navigator.of(context).pop(); // Tutup loading
-
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text("Update berhasil ✅")),
-                        );
-                      } catch (e) {
-                        if (!context.mounted) return;
-                        Navigator.of(context).pop(); // Tutup loading
-                        showErrorDialog(context, e.toString());
-                      }
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text("Row, Col, dan Action harus diisi ⚠️"),
-                        ),
+                      await notifier.setOccupied(
+                        input.row!,
+                        input.col!,
+                        input.action == "IN",
                       );
+
+                      await historyNotifier.loadHistory();
+
+                      if (!context.mounted) return;
+                      Navigator.of(context).pop(); // Tutup loading
+
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text("Update berhasil ✅")),
+                      );
+                    } catch (e) {
+                      if (!context.mounted) return;
+                      Navigator.of(context).pop(); // Tutup loading
+                      showErrorDialog(context, e.toString());
                     }
-                  },
-                  icon: const Icon(Icons.send),
-                  label: const Text("Submit"))
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text("Row, Col, dan Action harus diisi ⚠️"),
+                      ),
+                    );
+                  }
+                },
+                icon: const Icon(Icons.send),
+                label: const Text("Submit"),
+              )
             ],
           ),
         ),
+
         // Panel Riwayat
         Flexible(
           fit: FlexFit.loose,
@@ -204,7 +211,7 @@ class SidePanel extends ConsumerWidget {
             ),
             child: buildHistoryList(),
           ),
-        )
+        ),
       ],
     );
   }
